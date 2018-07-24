@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import sklearn as skl
 import time
+from scipy.stats import multivariate_normal
 
 from gradients import *
 
@@ -77,7 +78,7 @@ class CEC(skl.base.BaseEstimator):
     def fit(self, X, y=None, clear=False):
         self.X = X
         self._init_clusters()
-        self.draw_result(-1)
+        # self.draw_result(-1)
 
         for i in range(self.n_init):
             y_copy = self.y.copy()
@@ -102,7 +103,7 @@ class CEC(skl.base.BaseEstimator):
                     self.p[c] = sum(self.y == c) / self.X.shape[0]
                     self.calculate_cluster(c)
 
-            self.draw_result(i)
+            # self.draw_result(i)
             print(self.get_bic())
 
             if np.array_equal(self.y, y_copy):
@@ -112,7 +113,7 @@ class CEC(skl.base.BaseEstimator):
 
     def get_bic(self):
         n = self.X.shape[0]
-        k = sum(p.size for p in self.params)
+        n_params = sum(p.size for p in self.params)
         l = 0
         for j in range(n):
             k = self.y[j]
@@ -120,13 +121,35 @@ class CEC(skl.base.BaseEstimator):
             f = self.pdf(self.X[j], *self.get_pdf_params(k))
             v = np.log(self.p[k]) + np.log(f)
             l += v
-        return np.log(n) * k - 2 * l
+        return l, np.log(n) * n_params - 2 * l, n_params
 
     def save_model(self):
         pass
 
     def load_model(self):
         pass
+
+
+class NormalCEC(CEC):
+    def __init__(self, n_clusters=3, n_init=100, deletion_threshold=0.05):
+        CEC.__init__(self, n_clusters, n_init, deletion_threshold, multivariate_normal.pdf)
+
+    def get_pdf_params(self, k):
+        return self.cluster_centers_[k], self.W[k]
+
+    def calculate_cluster(self, c):
+        self.cluster_centers_[c] = self.X[self.y == c, :].mean(axis=0)
+        self.W[c] = np.cov(self.X[self.y == c, :].T)
+
+    def _init_params(self, clusters):
+        self.cluster_centers_ = np.vstack(clusters)
+        self.W = np.zeros((self.n_clusters, self.X.shape[1], self.X.shape[1]))
+        self.params = [self.W, self.cluster_centers_, np.array([self.n_clusters])]
+        for k in range(self.n_clusters):
+            if self.X[self.y == k, :].shape[0] != 0:
+                self.cluster_centers_[k] = self.X[self.y == k, :].mean(axis=0)
+                self.W[k] = np.cov(self.X[self.y == k, :].T)
+        return self.cluster_centers_
 
 
 class SGCEC(CEC):
@@ -147,7 +170,7 @@ class SGCEC(CEC):
         self.W = np.zeros((self.n_clusters, self.X.shape[1], self.X.shape[1]))
         self.sigma = np.zeros((self.n_clusters, self.X.shape[1]))
         self.tau = np.zeros((self.n_clusters, self.X.shape[1]))
-        self.params = [self.W, self.cluster_centers_]
+        self.params = [self.W, self.cluster_centers_, np.array([self.n_clusters]), self.sigma, self.tau]
         for k in range(self.n_clusters):
             if self.X[self.y == k, :].shape[0] != 0:
                 self.cluster_centers_[k] = self.X[self.y == k, :].mean(axis=0)
@@ -181,7 +204,7 @@ class GammaCEC(CEC):
         self.sigma = np.zeros((self.n_clusters, self.X.shape[1]))
         self.tau = np.zeros((self.n_clusters, self.X.shape[1]))
         self.c = np.full(self.n_clusters, 2.)
-        self.params = [self.W, self.cluster_centers_, self.c]
+        self.params = [self.W, self.cluster_centers_, self.c, np.array([self.n_clusters]), self.sigma, self.tau]
         for k in range(self.n_clusters):
             if self.X[self.y == k, :].shape[0] != 0:
                 self.cluster_centers_[k] = self.X[self.y == k, :].mean(axis=0)
