@@ -144,7 +144,7 @@ class NormalCEC(CEC):
     def _init_params(self, clusters):
         self.cluster_centers_ = np.vstack(clusters)
         self.W = np.zeros((self.n_clusters, self.X.shape[1], self.X.shape[1]))
-        self.params = [self.W, self.cluster_centers_, np.array([self.n_clusters])]
+        self.params = [self.W, self.cluster_centers_, self.p[:-1]]
         for k in range(self.n_clusters):
             if self.X[self.y == k, :].shape[0] != 0:
                 self.cluster_centers_[k] = self.X[self.y == k, :].mean(axis=0)
@@ -170,7 +170,7 @@ class SGCEC(CEC):
         self.W = np.zeros((self.n_clusters, self.X.shape[1], self.X.shape[1]))
         self.sigma = np.zeros((self.n_clusters, self.X.shape[1]))
         self.tau = np.zeros((self.n_clusters, self.X.shape[1]))
-        self.params = [self.W, self.cluster_centers_, np.array([self.n_clusters]), self.sigma, self.tau]
+        self.params = [self.W, self.cluster_centers_, self.p[:-1], self.sigma]
         for k in range(self.n_clusters):
             if self.X[self.y == k, :].shape[0] != 0:
                 self.cluster_centers_[k] = self.X[self.y == k, :].mean(axis=0)
@@ -204,7 +204,7 @@ class GammaCEC(CEC):
         self.sigma = np.zeros((self.n_clusters, self.X.shape[1]))
         self.tau = np.zeros((self.n_clusters, self.X.shape[1]))
         self.c = np.full(self.n_clusters, 2.)
-        self.params = [self.W, self.cluster_centers_, self.c, np.array([self.n_clusters]), self.sigma, self.tau]
+        self.params = [self.W, self.cluster_centers_, self.c, self.p[:-1], self.sigma]
         for k in range(self.n_clusters):
             if self.X[self.y == k, :].shape[0] != 0:
                 self.cluster_centers_[k] = self.X[self.y == k, :].mean(axis=0)

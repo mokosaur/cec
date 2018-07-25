@@ -143,7 +143,6 @@ def optimize_split_gamma(X, m, W, c, method="L-BFGS-B", jac=True):
     c0 = c
     x0 = np.append(np.vstack([m0, W0]).flatten(), c0)
     if jac:
-        #         jac = (lambda x: gradient_split_gamma(X, x[:-1].reshape((3, 2))[0, :], x[:-1].reshape((3, 2))[1:, :], x[-1]))
         jac = (lambda x: -gradient_split_gamma(X, x[:-1].reshape((d + 1, d))[0, :], x[:-1].reshape((d + 1, d))[1:, :], x[-1]))
     # params = minimize(lambda x: np.log(l_function_gamma(X, x[-1].reshape((3, 2))[0, :],
     #                                x[:-1].reshape((3, 2))[1:, :], x[-1])),
@@ -154,9 +153,9 @@ def optimize_split_gamma(X, m, W, c, method="L-BFGS-B", jac=True):
                                                       x[:-1].reshape((d + 1, d))[1:, :], x[-1]),
                       x0,
                       jac=jac, method=method,
-                      bounds=(
-                          (None, None), (None, None), (None, None), (None, None), (None, None), (None, None),
-                          (0.001, 10)))
+                      bounds=tuple((None, None) if x < len(x0) - 1 else (0.001, 10) for x in range(len(x0))))
+                          # (None, None), (None, None), (None, None), (None, None), (None, None), (None, None),
+                          # (0.001, 10)))
     m0 = params.x[:-1].reshape((d + 1, d))[0, :]
     W0 = params.x[:-1].reshape((d + 1, d))[1:, :]
     c0 = params.x[-1]
